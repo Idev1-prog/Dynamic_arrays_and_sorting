@@ -191,7 +191,15 @@ void fill_manual_input(DMassive* mass) {
     for (int i = 0; i < mass->size; i++) {
         int real_pos = get_pos(mass, i);
         printf("Элемент %d: ", i + 1);
-        scanf_s("%lf", &mass->data[real_pos]);
+
+        if (scanf_s("%lf", &mass->data[real_pos]) != 1) {
+            printf("Ошибка ввода! Попробуйте снова.\n");
+            i--;
+            while (getchar() != '\n');
+            continue;
+        }
+
+        while (getchar() != '\n');
     }
 }
 
@@ -224,6 +232,19 @@ void push_back(DMassive* mass, double value) {
     mass->data[mass->back] = value;
     mass->size++;
     if (mass->size == 1) mass->front = mass->back;
+}
+
+void revers_mass(DMassive* mass) {
+    int left = 0;
+    int right = mass->size - 1;
+    while (left < right) {
+        int real_left = get_pos(mass, left);
+        int real_right = get_pos(mass, right);
+        swap(&mass->data[real_left], &mass->data[real_right]);
+        
+        left++;
+        right--;
+    }
 }
 
 Status insert(DMassive* mass, int pos, double value) {
@@ -361,112 +382,116 @@ void print(DMassive* mass, const char* text, char sep, char end) {
 
 
 
-void bubble_sort(double* mass, int size, int front, int back) {
-    if (mass == NULL || size <= 1) {
-        return;
-    }
+void bubble_sort(DMassive* mass) {
+    if (mass == NULL || mass->size <= 1) return;
 
-    for (int i = front; i <= back; i++) {
-        for (int j = front; j <= back - i; j++) {
-            if (mass[j] > mass[j + 1]) {
-                double temp = mass[j];
-                mass[j] = mass[j + 1];
-                mass[j + 1] = temp;
+    for (int i = 0; i < mass->size - 1; i++) {
+        for (int j = 0; j < mass->size - i - 1; j++) {
+            int real_j = get_pos(mass, j);
+            int real_j1 = get_pos(mass, j + 1);
+
+            if (mass->data[real_j] > mass->data[real_j1]) {
+                swap(&mass->data[real_j], &mass->data[real_j1]);
             }
         }
     }
 }
 
-void bubble_sort_pro(double* mass, int size, int front, int back) {
-    if (mass == NULL || size <= 1) {
-        return;
-    }
-    bool swapped;
+void bubble_sort_pro(DMassive* mass) {
+    if (mass == NULL || mass->size <= 1) return;
 
-    for (int i = front; i <= back; i++) {
+    bool swapped;
+    for (int i = 0; i < mass->size - 1; i++) {
         swapped = false;
 
-        for (int j = front; j <= back - i; j++) {
-            if (mass[j] > mass[j + 1]) {
-                double temp = mass[j];
-                mass[j] = mass[j + 1];
-                mass[j + 1] = temp;
+        for (int j = 0; j < mass->size - i - 1; j++) {
+            int real_j = get_pos(mass, j);
+            int real_j1 = get_pos(mass, j + 1);
+
+            if (mass->data[real_j] > mass->data[real_j1]) {
+                swap(&mass->data[real_j], &mass->data[real_j1]);
                 swapped = true;
             }
         }
 
-        if (!swapped) {
-            break;
-        }
+        if (!swapped) break;
     }
 }
 
-void shell_sort_knuth(double* mass, int size, int front, int back) {
-    int gap = front;
-    while (gap < (back - front + 1) / 3) {
+void shell_sort_knuth(DMassive* mass) {
+    if (mass == NULL || mass->size <= 1) return;
+
+    int gap = 1;
+    while (gap < mass->size / 3) {
         gap = 3 * gap + 1; // 1, 4, 13, 40, 121, ...
     }
 
     while (gap > 0) {
-        for (int i = gap; i <= (back - front + 1); i++) {
-            for (int j = i; j >= gap && mass[j - gap] > mass[j]; j -= gap) {
-                double temp = mass[j];
-                mass[j] = mass[j - gap];
-                mass[j - gap] = temp;
+        for (int i = gap; i < mass->size; i++) {
+            int real_i = get_pos(mass, i);
+            double temp = mass->data[real_i];
+            int j = i;
+
+            while (j >= gap) {
+                int real_j_gap = get_pos(mass, j - gap);
+                if (mass->data[real_j_gap] > temp) {
+                    int real_j = get_pos(mass, j);
+                    mass->data[real_j] = mass->data[real_j_gap];
+                    j -= gap;
+                }
+                else {
+                    break;
+                }
             }
+
+            int real_j = get_pos(mass, j);
+            mass->data[real_j] = temp;
         }
+
         gap /= 3;
     }
 }
 
-void bogo_sort(double* mass, int size, int front, int back) {
-    // rofl semi-AI-generated
-    if (mass == NULL || size <= 1 || front > back || front < 0 || back >= size) {
-        return;
-    }
+void bogo_sort(DMassive* mass) {
+    if (mass == NULL || mass->size <= 1) return;
 
     static bool seeded = false;
     if (!seeded) {
-        srand(time(NULL));
+        srand((unsigned int)time(NULL));
         seeded = true;
     }
 
     bool sorted = true;
-    for (int i = front; i < back; i++) {
-        if (mass[i] > mass[i + 1]) {
+    for (int i = 0; i < mass->size - 1; i++) {
+        int real_i = get_pos(mass, i);
+        int real_i1 = get_pos(mass, i + 1);
+        if (mass->data[real_i] > mass->data[real_i1]) {
             sorted = false;
             break;
         }
     }
-    if (sorted) {
-        return;
-    }
 
-    int attempts = 0;
+    if (sorted) return;
+
     const int MAX_ATTEMPTS = 100000;
+    int attempts = 0;
 
     while (attempts < MAX_ATTEMPTS) {
-        for (int i = back; i > front; i--) {
-            int j = front + rand() % (i - front + 1);
-
-            double temp = mass[i];
-            mass[i] = mass[j];
-            mass[j] = temp;
+        for (int i = mass->size - 1; i > 0; i--) {
+            int j = rand() % (i + 1);
+            int real_i = get_pos(mass, i);
+            int real_j = get_pos(mass, j);
+            swap(&mass->data[real_i], &mass->data[real_j]);
         }
 
-        sorted = true;
-        for (int i = front; i < back; i++) {
-            if (mass[i] > mass[i + 1]) {
-                sorted = false;
-                break;
-            }
-        }
+        sorted = sorted_left_to_right(mass);
 
-        if (sorted) {
-            return;
-        }
+        if (sorted) return;
 
         attempts++;
     }
+
+    printf("Bogo sort exceeded maximum attempts (%d)\n", MAX_ATTEMPTS);
 }
+
 

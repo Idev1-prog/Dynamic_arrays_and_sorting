@@ -1,8 +1,12 @@
 #pragma once
 #include <stdio.h>
+#include "dmassive.h"
 #include "menu.h"
 #include <stdbool.h>
 #include <stdlib.h>
+
+#define MOD_ONE 1
+#define MOD_SEVERAL 2
 
 #define HEADER_MAIN "--------- MAIN MENU ---------"
 #define MAIN_MENU_BASE_TEXT \
@@ -85,8 +89,10 @@
 #define SORT_MENU_ITEMS_COUNT 6
 
 void main_menu();
-void mod_menu(bool* exit_flag);
-void sort_mode_menu(bool* exit_flag);
-void create_arr_menu(bool* exit_flag);
-void insert_menu(bool* exit_flag);
-void search_menu(bool* exit_flag);
+int mod_menu(bool* exit_flag);
+void erase_menu(bool* exit_flag, DMassive* mass, int mod);
+void sort_mode_menu(bool* exit_flag, DMassive* mass);
+void sort_menu(bool* exit_flag, DMassive* mass);
+void create_arr_menu(bool* exit_flag, DMassive* mass);
+void insert_menu(bool* exit_flag, DMassive* mass, int mod);
+void search_menu(bool* exit_flag, DMassive* mass);
