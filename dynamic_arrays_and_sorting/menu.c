@@ -1,8 +1,11 @@
 #include <stdio.h>
+#include "windows.h"
 #include "menu.h"
 #include <stdbool.h>
 #include <stdlib.h>
 #include "dmassive.h"
+#include <string.h>
+#include <errno.h>
 
 
 void clear_screen() {
@@ -96,14 +99,12 @@ void sort_mode_menu(bool* exit_flag, DMassive* mass) {
         case 1:
             printf("Ascending sort mode selected.\n");
             sort_menu(exit_flag, mass);
-            system("pause");
-            break;
+            return;
         case 2:
             printf("Descending sort mode selected.\n");
             sort_menu(exit_flag, mass);
             revers_mass(mass);
-            system("pause");
-            break;
+            return;
         case 3:
             return;
         }
@@ -112,7 +113,13 @@ void sort_mode_menu(bool* exit_flag, DMassive* mass) {
 
 void sort_menu(bool* exit_flag, DMassive* mass) {
     int user_choose = -1;
-    
+    if (mass->data == NULL || mass->size == 0) {
+        printf("Array is empty or not created yet!\n");
+        system("pause");
+        return;
+    }
+
+
     while (!*exit_flag) {
         print_menu_header(HEADER_SORT);
         printf(SORT_MENU_TEXT);
@@ -133,7 +140,7 @@ void sort_menu(bool* exit_flag, DMassive* mass) {
             return;
         case 3:
             printf("Quick sort choosed.\n");
-            //quick_sort();
+            quick_sort(mass);
             return;
         case 4:
             printf("Shell sort choosed.\n");
@@ -171,7 +178,7 @@ void create_arr_menu(bool* exit_flag, DMassive* mass) {
             fill_elementary(mass);
             printf("Array created with %d elements.\n", size);
             system("pause");
-            break;
+            return;
         case 2:
             printf("Random array creation selected.\n");
             size = get_array_size();
@@ -182,15 +189,27 @@ void create_arr_menu(bool* exit_flag, DMassive* mass) {
             fill_randomly(mass, min, max);
             printf("Array created with %d random elements between %.2lf and %.2lf.\n", size, min, max);
             system("pause");
-            break;
+            return;
         case 3:
             printf("Manual input selected.\n");
             size = get_array_size();
             set_memory(mass, size);
-            fill_manual_input(mass);
+
+            printf("Enter %d array elements:\n", size);
+            for (int i = 0; i < size; i++) {
+                printf("Element %d: ", i + 1);
+                int real_pos = get_pos(mass, i);
+                if (scanf_s("%lf", &mass->data[real_pos]) != 1) {
+                    printf("Input error! Try again.\n");
+                    i--;
+                    while (getchar() != '\n');
+                    continue;
+                }
+                while (getchar() != '\n');
+            }
             printf("Array created with %d manually entered elements.\n", size);
             system("pause");
-            break;
+            return;
         case 4:
             return;
         }
@@ -211,8 +230,7 @@ void insert_menu(bool* exit_flag, DMassive* mass, int mod) {
 
     while (!*exit_flag) {
         print_menu_header(HEADER_INSERT);
-        printf("Current array: ");
-        print(mass, NULL, ' ', '\n');
+        print(mass, "Your array: ", ' ', '\n');
         printf("\n");
         printf(INSERT_MENU_TEXT);
 
@@ -223,36 +241,138 @@ void insert_menu(bool* exit_flag, DMassive* mass, int mod) {
             *exit_flag = true;
             return;
         case 1:
-            printf("Insert in front selected.\n");
-            printf("Enter value to insert: ");
-            scanf_s("%lf", &value);
-            while (getchar() != '\n');
-            push_front(mass, value);
-            printf("Value %.2lf inserted at front.\n", value);
-            system("pause");
-            break;
-        case 2:
-            printf("Insert in back selected.\n");
-            printf("Enter value to insert: ");
-            scanf_s("%lf", &value);
-            while (getchar() != '\n');
-            push_back(mass, value);
-            printf("Value %.2lf inserted at back.\n", value);
-            system("pause");
-            break;
-        case 3:
-            printf("Insert by position selected.\n");
-            printf("Enter position (0 to %d): ", mass->size);
-            scanf_s("%d", &pos);
-            printf("Enter value to insert: ");
-            scanf_s("%lf", &value);
-            while (getchar() != '\n');
-            status = insert(mass, pos, value);
-            if (status == SUCCESS) {
-                printf("Value %.2lf inserted at position %d.\n", value, pos);
+            if (mod == MOD_ONE) {
+                printf("Insert in front selected (single element).\n");
+                printf("Enter value to insert: ");
+                scanf_s("%lf", &value);
+                while (getchar() != '\n');
+                push_front(mass, value);
+                printf("Value %.2lf inserted at front.\n", value);
             }
             else {
-                printf("Failed to insert value.\n");
+                printf("Insert in front selected (multiple elements).\n");
+                printf("How many elements to insert? ");
+                int count;
+                scanf_s("%d", &count);
+                while (getchar() != '\n');
+
+                if (count <= 0) {
+                    printf("Invalid number of elements.\n");
+                    break;
+                }
+
+                double* values = (double*)malloc(count * sizeof(double));
+                if (values == NULL) {
+                    printf("Memory allocation failed!\n");
+                    break;
+                }
+
+                printf("Enter %d values:\n", count);
+                for (int i = 0; i < count; i++) {
+                    printf("Value %d: ", i + 1);
+                    scanf_s("%lf", &values[i]);
+                    while (getchar() != '\n');
+                }
+
+                push_front_several(mass, count, values);
+                printf("%d elements inserted at front.\n", count);
+                free(values);
+            }
+            system("pause");
+            break;
+
+        case 2:
+            if (mod == MOD_ONE) {
+                printf("Insert in back selected (single element).\n");
+                printf("Enter value to insert: ");
+                scanf_s("%lf", &value);
+                while (getchar() != '\n');
+                push_back(mass, value);
+                printf("Value %.2lf inserted at back.\n", value);
+            }
+            else {
+                printf("Insert in back selected (multiple elements).\n");
+                printf("How many elements to insert? ");
+                int count;
+                scanf_s("%d", &count);
+                while (getchar() != '\n');
+
+                if (count <= 0) {
+                    printf("Invalid number of elements.\n");
+                    break;
+                }
+
+                double* values = (double*)malloc(count * sizeof(double));
+                if (values == NULL) {
+                    printf("Memory allocation failed!\n");
+                    break;
+                }
+
+                printf("Enter %d values:\n", count);
+                for (int i = 0; i < count; i++) {
+                    printf("Value %d: ", i + 1);
+                    scanf_s("%lf", &values[i]);
+                    while (getchar() != '\n');
+                }
+
+                push_back_several(mass, count, values);
+                printf("%d elements inserted at back.\n", count);
+                free(values);
+            }
+            system("pause");
+            break;
+
+        case 3:
+            if (mod == MOD_ONE) {
+                printf("Insert by position selected (single element).\n");
+                printf("Enter position (0 to %d): ", mass->size);
+                scanf_s("%d", &pos);
+                printf("Enter value to insert: ");
+                scanf_s("%lf", &value);
+                while (getchar() != '\n');
+                status = insert(mass, pos, value);
+                if (status == SUCCESS) {
+                    printf("Value %.2lf inserted at position %d.\n", value, pos);
+                }
+                else {
+                    printf("Failed to insert value.\n");
+                }
+            }
+            else {
+                printf("Insert by position selected (multiple elements).\n");
+                printf("Enter position (0 to %d): ", mass->size);
+                scanf_s("%d", &pos);
+                printf("How many elements to insert? ");
+                int count;
+                scanf_s("%d", &count);
+                while (getchar() != '\n');
+
+                if (count <= 0) {
+                    printf("Invalid number of elements.\n");
+                    break;
+                }
+
+                double* values = (double*)malloc(count * sizeof(double));
+                if (values == NULL) {
+                    printf("Memory allocation failed!\n");
+                    break;
+                }
+
+                printf("Enter %d values:\n", count);
+                for (int i = 0; i < count; i++) {
+                    printf("Value %d: ", i + 1);
+                    scanf_s("%lf", &values[i]);
+                    while (getchar() != '\n');
+                }
+
+                status = insert_several(mass, pos, count, values);
+                if (status == SUCCESS) {
+                    printf("%d elements inserted at position %d.\n", count, pos);
+                }
+                else {
+                    printf("Failed to insert elements.\n");
+                }
+                free(values);
             }
             system("pause");
             break;
@@ -275,8 +395,7 @@ void erase_menu(bool* exit_flag, DMassive* mass, int mod) {
 
     while (!*exit_flag) {
         print_menu_header(HEADER_ERASE);
-        printf("Current array: ");
-        print(mass, NULL, ' ', '\n');
+        print(mass, "Your array: ", ' ', '\n');
         printf("\n");
         printf(ERASE_MENU_TEXT);
 
@@ -287,38 +406,108 @@ void erase_menu(bool* exit_flag, DMassive* mass, int mod) {
             *exit_flag = true;
             return;
         case 1:
-            printf("Delete from front selected.\n");
-            status = pop_front(mass);
-            if (status == SUCCESS) {
-                printf("First element removed.\n");
+            if (mod == MOD_ONE) {
+                printf("Delete from front selected (single element).\n");
+                status = pop_front(mass);
+                if (status == SUCCESS) {
+                    printf("First element removed.\n");
+                }
+                else {
+                    printf("Failed to remove element.\n");
+                }
             }
             else {
-                printf("Failed to remove element.\n");
+                printf("Delete from front selected (multiple elements).\n");
+                printf("How many elements to delete? (max: %d): ", mass->size);
+                int count;
+                scanf_s("%d", &count);
+                while (getchar() != '\n');
+
+                if (count <= 0 || count > mass->size) {
+                    printf("Invalid number of elements.\n");
+                    break;
+                }
+
+                status = pop_front_several(mass, count);
+                if (status == SUCCESS) {
+                    printf("%d elements removed from front.\n", count);
+                }
+                else {
+                    printf("Failed to remove elements.\n");
+                }
             }
             system("pause");
             break;
+
         case 2:
-            printf("Delete from back selected.\n");
-            status = pop_back(mass);
-            if (status == SUCCESS) {
-                printf("Last element removed.\n");
+            if (mod == MOD_ONE) {
+                printf("Delete from back selected (single element).\n");
+                status = pop_back(mass);
+                if (status == SUCCESS) {
+                    printf("Last element removed.\n");
+                }
+                else {
+                    printf("Failed to remove element.\n");
+                }
             }
             else {
-                printf("Failed to remove element.\n");
+                printf("Delete from back selected (multiple elements).\n");
+                printf("How many elements to delete? (max: %d): ", mass->size);
+                int count;
+                scanf_s("%d", &count);
+                while (getchar() != '\n');
+
+                if (count <= 0 || count > mass->size) {
+                    printf("Invalid number of elements.\n");
+                    break;
+                }
+
+                status = pop_back_several(mass, count);
+                if (status == SUCCESS) {
+                    printf("%d elements removed from back.\n", count);
+                }
+                else {
+                    printf("Failed to remove elements.\n");
+                }
             }
             system("pause");
             break;
+
         case 3:
-            printf("Delete by position selected.\n");
-            printf("Enter position to delete (0 to %d): ", mass->size - 1);
-            scanf_s("%d", &pos);
-            while (getchar() != '\n');
-            status = erase(mass, pos);
-            if (status == SUCCESS) {
-                printf("Element at position %d removed.\n", pos);
+            if (mod == MOD_ONE) {
+                printf("Delete by position selected (single element).\n");
+                printf("Enter position to delete (0 to %d): ", mass->size - 1);
+                scanf_s("%d", &pos);
+                while (getchar() != '\n');
+                status = erase(mass, pos);
+                if (status == SUCCESS) {
+                    printf("Element at position %d removed.\n", pos);
+                }
+                else {
+                    printf("Failed to remove element.\n");
+                }
             }
             else {
-                printf("Failed to remove element.\n");
+                printf("Delete by position selected (multiple elements).\n");
+                printf("Enter starting position (0 to %d): ", mass->size - 1);
+                scanf_s("%d", &pos);
+                printf("How many elements to delete? (max: %d): ", mass->size - pos);
+                int count;
+                scanf_s("%d", &count);
+                while (getchar() != '\n');
+
+                if (count <= 0 || pos + count > mass->size) {
+                    printf("Invalid number of elements.\n");
+                    break;
+                }
+
+                status = erase_several(mass, pos, count);
+                if (status == SUCCESS) {
+                    printf("%d elements removed starting from position %d.\n", count, pos);
+                }
+                else {
+                    printf("Failed to remove elements.\n");
+                }
             }
             system("pause");
             break;
@@ -330,7 +519,19 @@ void erase_menu(bool* exit_flag, DMassive* mass, int mod) {
 
 void search_menu(bool* exit_flag, DMassive* mass) {
     int user_choose = -1;
+    double target;
+    if (mass->data == NULL || mass->size == 0) {
+        printf("Array is empty or not created yet!\n");
+        system("pause");
+        return;
+    }
+
     while (!*exit_flag) {
+        printf("Enter the item you are going to search for: ");
+        scanf_s("%lf", &target);
+        while (getchar() != '\n');
+        clear_screen();
+
         print_menu_header(HEADER_SEARCH);
         printf(SEARCH_MENU_TEXT);
 
@@ -341,32 +542,110 @@ void search_menu(bool* exit_flag, DMassive* mass) {
             *exit_flag = true;
             return;
         case 1:
-            printf("Count search selected.\n");
+            printf("Count: %d\n", count_occurrences(mass, target));
             system("pause");
-            break;
+            return;
         case 2:
-            printf("First occurrence search selected.\n");
+            printf("First occurrence: %d\n", binary_search_left(mass, target));
             system("pause");
-            break;
+            return;
         case 3:
-            printf("Last occurrence search selected.\n");
+            printf("Last occurrence: %d\n", binary_search_right(mass, target));
             system("pause");
-            break;
+            return;
         case 4:
             printf("All occurrences search selected.\n");
+            int occurrence_count;
+            int* indices = find_all_occurrences(mass, target, &occurrence_count);
+            if (indices != NULL) {
+                printf("The found indexes of the elements:\n");
+                for (int i = 0; i < occurrence_count; i++) {
+                    printf("%d ", indices[i]);
+                }
+                printf("\n");
+            }
+            else{
+                printf("The element %.2f was not found\n", target);
+            }
             system("pause");
-            break;
+            free(indices);
+            return;
         case 5:
             return;
         }
     }
 }
 
+int choose_file_properties_menu(bool* exit_flag, char* dir, char* file_name, char type) {
+    char temp_file_name[100];
+
+    printf(CHOOSE_FILE_NAME_TEXT);
+
+    if (fgets(temp_file_name, sizeof(temp_file_name), stdin) == NULL) {
+        return 0;
+    }
+
+    temp_file_name[strcspn(temp_file_name, "\n")] = '\0';
+
+    if (strlen(temp_file_name) == 0) {
+        return 0;
+    }
+
+    strcpy_s(file_name, 100, temp_file_name);
+
+    if (type == 'w') {
+        strcat_s(file_name, 100, ".txt");
+    }
+
+    int user_choice = -1;
+    while (!*exit_flag) {
+        clear_screen();
+        printf(PATH_MENU_TEXT);
+        user_choice = get_user_choice(0, FILE_PROPERTIES_MENU);
+
+        switch (user_choice) {
+        case 0:
+            *exit_flag = true;
+            return 0;
+        case 1:
+            strcpy_s(dir, 100, ".\\");
+            Sleep(5);
+            printf("The current directory is set for saving/writing.");
+            return 1;
+        case 2: {
+            clear_screen();
+            printf(DIR_FILE_NAME_TEXT);
+
+            char temp_dir[100];
+            if (fgets(temp_dir, sizeof(temp_dir), stdin) == NULL) {
+                return 0;
+            }
+
+            temp_dir[strcspn(temp_dir, "\n")] = '\0';
+
+            strcpy_s(dir, 100, temp_dir);
+
+            size_t len = strlen(dir);
+            if (len > 0 && dir[len - 1] != '\\' && dir[len - 1] != '/') {
+                strcat_s(dir, 100, "\\");
+            }
+
+            printf("The user directory is set for saving/writing.");
+            Sleep(5);
+            return 1;
+        }
+        case 3:
+            return 0;
+        }
+    }
+    return 0;
+}
+
 void main_menu() {
     int user_choose = -1;
     int mod = 0;
     bool exit_flag = false;
-    DMassive mass = { 0 };
+    DMassive mass = { 0, 0, 0, 0 };
 
     while (!exit_flag) {
         print_menu_header(HEADER_MAIN);
@@ -400,7 +679,8 @@ void main_menu() {
             search_menu(&exit_flag, &mass);
             break;
         case 5:
-            printf("Shuffle (TBD)\n");
+            printf("Shuffle mass\n");
+            shake_mass(&mass);
             system("pause");
             break;
         case 6:
@@ -412,18 +692,28 @@ void main_menu() {
             printf("The array has been cleared.\n");
             system("pause");
             break;
-        case 8:
-            printf("Save to file (TBD)\n");
-            system("pause");
+        case 8: {
+            char dir[100] = ".\\";
+            char file_name[100];
+            mod = choose_file_properties_menu(&exit_flag, dir, file_name, 'w');
+            if (!exit_flag && mod != 0) {
+                write_mass_in_file(dir, file_name, &mass);
+                Sleep(5);
+            }
+
             break;
-        case 9:
-            printf("Read from file (TBD)\n");
-            system("pause");
+        }
+        case 9: {
+            char dir[100] = ".";
+            char file_name[100];
+            mod = choose_file_properties_menu(&exit_flag, dir, file_name, 'r');
+            if (!exit_flag && mod != 0) {
+                read_mass_from_file(dir, file_name, &mass);
+                Sleep(5);
+                system("pause");
+            }
             break;
-        //case 10:
-        //    printf("Test func\n");
-        //    revers_mass(&mass);
-        //    break;
+        }
         }
     }
 

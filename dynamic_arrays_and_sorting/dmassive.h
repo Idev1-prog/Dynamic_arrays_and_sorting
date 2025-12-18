@@ -13,7 +13,7 @@
 /**
 * Возможные статусы завершения функции
 */
-enum Status { SUCCESS, WARNING, ERROR };
+enum Status { SUCCESS, WARNING, ERROREXIT };
 
 /**
 * Структура, объявляющая динамический массив с кольцевым буфером и запасом памяти
@@ -53,6 +53,8 @@ int calculate_capacity(int size);
 * @return реальный индекс элемента в массиве
 */
 int get_pos(DMassive* mass, int pos);
+
+double get_element(DMassive* mass, int logical_index);
 
 /**
 * Функция получения реального индекса следующего элемента в массиве
@@ -103,6 +105,8 @@ void right_shift(DMassive* mass, int pos);
 * @param pos стартовый индекс (пользовательский) для сдвига
 */
 void left_shift(DMassive* mass, int pos);
+
+int search_cmp(double a, double b);
 
 /**
 * Функция проверки упорядоченности массива по возрастанию
@@ -234,6 +238,33 @@ Status pop_back(DMassive* mass);
 */
 Status erase(DMassive* mass, int pos);
 
+void push_front_several(DMassive* mass, int count, const double* values);
+
+void push_back_several(DMassive* mass, int count, const double* values);
+
+Status insert_several(DMassive* mass, int pos, int count, const double* values);
+
+Status pop_front_several(DMassive* mass, int count);
+
+Status pop_back_several(DMassive* mass, int count);
+
+Status erase_several(DMassive* mass, int pos, int count);
+
+void shake_mass(DMassive* mass);
+
+void write_mass_in_file(char* dir, char* file_name, DMassive* mass);
+
+void read_mass_from_file(char* dir, char* file_name, DMassive* mass);
+
+
+int binary_search_left(DMassive* mass, double target);
+
+int binary_search_right(DMassive* mass, double target);
+
+int count_occurrences(DMassive* mass, double target);
+
+int* find_all_occurrences(DMassive* mass, double target, int* count);
+
 /* Вывод на экран */
 
 /**
@@ -246,6 +277,8 @@ Status erase(DMassive* mass, int pos);
 */
 void print(DMassive* mass, const char* text, char sep, char end);
 
+void write_mass_in_file(char* dir, char* file_name, DMassive* mass);
+
 void bubble_sort(DMassive* mass);
 
 void bubble_sort_pro(DMassive* mass);
@@ -253,3 +286,5 @@ void bubble_sort_pro(DMassive* mass);
 void shell_sort_knuth(DMassive* mass);
 
 void bogo_sort(DMassive* mass);
+
+void quick_sort(DMassive* mass);

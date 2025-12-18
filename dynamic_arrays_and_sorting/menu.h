@@ -62,8 +62,8 @@
 #define HEADER_SEARCH "--------- SEARCH MENU ---------"
 #define SEARCH_MENU_TEXT \
 "1. Count\n" \
-"2. First\n" \
-"3. Last\n" \
+"2. First (Attention! Will sort the array if it is not sorted)\n" \
+"3. Last (Attention! Will sort the array if it is not sorted)\n" \
 "4. All\n" \
 "5. Back\n" \
 "0. Exit\n"
@@ -88,6 +88,21 @@
 "0. Exit\n"
 #define SORT_MENU_ITEMS_COUNT 6
 
+
+#define FILE_PROPERTIES_MENU 3
+
+#define PATH_MENU_TEXT \
+"1. Current directory\n" \
+"2. Enter custom directory\n" \
+"3. Back\n\n" \
+"0. Exit\n" \
+"Choose item: "
+#define CHOOSE_FILE_NAME_TEXT \
+"Enter file name (or space to exit): "
+#define DIR_FILE_NAME_TEXT \
+"Enter path to save file (or space to exit): "
+
+
 void main_menu();
 int mod_menu(bool* exit_flag);
 void erase_menu(bool* exit_flag, DMassive* mass, int mod);
@@ -96,3 +111,4 @@ void sort_menu(bool* exit_flag, DMassive* mass);
 void create_arr_menu(bool* exit_flag, DMassive* mass);
 void insert_menu(bool* exit_flag, DMassive* mass, int mod);
 void search_menu(bool* exit_flag, DMassive* mass);
+int choose_file_properties_menu(bool* exit_flag, char* dir, char* file_name, char type);

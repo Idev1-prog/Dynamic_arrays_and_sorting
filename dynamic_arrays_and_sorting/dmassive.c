@@ -3,6 +3,10 @@
 #include <stdbool.h>
 #include <time.h>
 #include <stdlib.h>
+#include <math.h>
+#include <string.h>
+#include <errno.h>
+
 
 int calculate_capacity(int size) {
     return ((size + STEP_OF_CAPACITY - 1) / STEP_OF_CAPACITY) * STEP_OF_CAPACITY;
@@ -11,6 +15,11 @@ int calculate_capacity(int size) {
 int get_pos(DMassive* mass, int pos) {
     if (mass == NULL || mass->size == 0) return -1;
     return (mass->front + pos) % mass->capacity;
+}
+
+double get_element(DMassive* mass, int logical_index) {
+    int real_index = get_pos(mass, logical_index);
+    return mass->data[real_index];
 }
 
 int get_next_pos(DMassive* mass, int pos) {
@@ -50,6 +59,20 @@ void left_shift(DMassive* mass, int pos) {
         mass->data[current_real] = mass->data[next_real];
     }
     mass->data[get_pos(mass, mass->size - 1)] = 0.0;
+}
+
+int search_cmp(double a, double b) {
+    const double EPSILON = 1e-2;
+
+    if (fabs(a - b) < EPSILON) {
+        return 0;
+    }
+    else if (a < b) {
+        return -1;
+    }
+    else {
+        return 1;
+    }
 }
 
 bool sorted_left_to_right(DMassive* mass) {
@@ -187,19 +210,28 @@ void fill_randomly(DMassive* mass, double min_val, double max_val) {
 void fill_manual_input(DMassive* mass) {
     if (mass == NULL || mass->data == NULL) return;
 
-    printf("Введите %d элементов массива:\n", mass->size);
     for (int i = 0; i < mass->size; i++) {
         int real_pos = get_pos(mass, i);
-        printf("Элемент %d: ", i + 1);
-
         if (scanf_s("%lf", &mass->data[real_pos]) != 1) {
-            printf("Ошибка ввода! Попробуйте снова.\n");
+            printf("Input error! Try again.\n");
             i--;
             while (getchar() != '\n');
             continue;
         }
-
         while (getchar() != '\n');
+    }
+}
+
+void shake_mass(DMassive* mass) {
+    if (mass == NULL || mass->data == NULL || mass->size == 0) {
+        printf("Your array has not been created yet");
+        return;
+    }
+    for (int i = 0; i < mass->size; i++) {
+        int r = rand() % (mass->size);
+        double c = mass->data[r];
+        mass->data[r] = mass->data[i];
+        mass->data[i] = c;
     }
 }
 
@@ -248,8 +280,8 @@ void revers_mass(DMassive* mass) {
 }
 
 Status insert(DMassive* mass, int pos, double value) {
-    if (mass == NULL) return ERROR;
-    if (pos < 0 || pos > mass->size) return ERROR;
+    if (mass == NULL) return ERROREXIT;
+    if (pos < 0 || pos > mass->size) return ERROREXIT;
 
     if (pos == 0) {
         push_front(mass, value);
@@ -285,7 +317,7 @@ Status insert(DMassive* mass, int pos, double value) {
 }
 
 Status pop_front(DMassive* mass) {
-    if (is_empty(mass)) return ERROR;
+    if (is_empty(mass)) return ERROREXIT;
 
     mass->data[mass->front] = 0.0;
     mass->front = get_next_pos(mass, mass->front);
@@ -300,7 +332,7 @@ Status pop_front(DMassive* mass) {
 }
 
 Status pop_back(DMassive* mass) {
-    if (is_empty(mass)) return ERROR;
+    if (is_empty(mass)) return ERROREXIT;
 
     mass->data[mass->back] = 0.0;
     mass->back = get_prev_pos(mass, mass->back);
@@ -315,8 +347,8 @@ Status pop_back(DMassive* mass) {
 }
 
 Status erase(DMassive* mass, int pos) {
-    if (mass == NULL || is_empty(mass)) return ERROR;
-    if (pos < 0 || pos >= mass->size) return ERROR;
+    if (mass == NULL || is_empty(mass)) return ERROREXIT;
+    if (pos < 0 || pos >= mass->size) return ERROREXIT;
 
     if (pos == 0) return pop_front(mass);
     if (pos == mass->size - 1) return pop_back(mass);
@@ -331,6 +363,175 @@ Status erase(DMassive* mass, int pos) {
     mass->back = get_pos(mass, mass->size - 1);
 
     return SUCCESS;
+}
+
+void push_front_several(DMassive* mass, int count, const double* values) {
+    if (mass == NULL || values == NULL || count <= 0) return;
+
+    for (int i = count - 1; i >= 0; i--) {
+        push_front(mass, values[i]);
+    }
+}
+
+void push_back_several(DMassive* mass, int count, const double* values) {
+    if (mass == NULL || values == NULL || count <= 0) return;
+
+    for (int i = 0; i < count; i++) {
+        push_back(mass, values[i]);
+    }
+}
+
+Status insert_several(DMassive* mass, int pos, int count, const double* values) {
+    if (mass == NULL || values == NULL || count <= 0) return ERROREXIT;
+    if (pos < 0 || pos > mass->size) return ERROREXIT;
+
+    for (int i = 0; i < count; i++) {
+        Status status = insert(mass, pos + i, values[i]);
+        if (status != SUCCESS) {
+            return status;
+        }
+    }
+    return SUCCESS;
+}
+
+Status pop_front_several(DMassive* mass, int count) {
+    if (mass == NULL || count <= 0) return ERROREXIT;
+
+    for (int i = 0; i < count; i++) {
+        Status status = pop_front(mass);
+        if (status != SUCCESS) {
+            return status;
+        }
+    }
+    return SUCCESS;
+}
+
+Status pop_back_several(DMassive* mass, int count) {
+    if (mass == NULL || count <= 0) return ERROREXIT;
+
+    for (int i = 0; i < count; i++) {
+        Status status = pop_back(mass);
+        if (status != SUCCESS) {
+            return status;
+        }
+    }
+    return SUCCESS;
+}
+
+Status erase_several(DMassive* mass, int pos, int count) {
+    if (mass == NULL || count <= 0) return ERROREXIT;
+    if (pos < 0 || pos >= mass->size) return ERROREXIT;
+
+
+    for (int i = 0; i < count; i++) {
+        Status status = erase(mass, pos);
+        if (status != SUCCESS) {
+            return status;
+        }
+    }
+    return SUCCESS;
+}
+
+int binary_search_left(DMassive* mass, double target) {
+    if (mass == NULL || mass->size == 0) return -1;
+
+    if (!sorted_left_to_right(mass)) {
+        quick_sort(mass);
+    }
+
+    int left = 0;
+    int right = mass->size - 1;
+    int result = -1;
+
+    while (left <= right) {
+        int mid = left + (right - left) / 2;
+        double mid_val = get_element(mass, mid);
+        int comparison = search_cmp(mid_val, target);
+
+        if (comparison == 0) {
+            result = mid;
+            right = mid - 1;
+        }
+        else if (comparison < 0) {
+            left = mid + 1;
+        }
+        else {
+            right = mid - 1;
+        }
+    }
+
+    return result;
+}
+
+int binary_search_right(DMassive* mass, double target) {
+    if (mass == NULL || mass->size == 0) return -1;
+
+    if (!sorted_left_to_right(mass)) {
+        quick_sort(mass);
+    }
+
+    int left = 0;
+    int right = mass->size - 1;
+    int result = -1;
+
+    while (left <= right) {
+        int mid = left + (right - left) / 2;
+        double mid_val = get_element(mass, mid);
+        int comparison = search_cmp(mid_val, target);
+
+        if (comparison == 0) {
+            result = mid;
+            left = mid + 1;
+        }
+        else if (comparison < 0) {
+            left = mid + 1;
+        }
+        else {
+            right = mid - 1;
+        }
+    }
+
+    return result;
+}
+
+int count_occurrences(DMassive* mass, double target) {
+    if (mass == NULL || mass->size == 0) return 0;
+    
+    int count = 0;
+    for (int i = 0; i < mass->size; i++) {
+        if (search_cmp(get_element(mass, i), target) == 0) {
+            count++;
+        }
+    }
+    return count;
+}
+
+int* find_all_occurrences(DMassive* mass, double target, int* count) {
+    if (mass == NULL || mass->size == 0) {
+        *count = 0;
+        return NULL;
+    }
+    
+    *count = count_occurrences(mass, target);
+    
+    if (*count == 0) {
+        return NULL;
+    }
+    
+    int* indices = (int*)malloc((*count) * sizeof(int));
+    if (indices == NULL) {
+        *count = 0;
+        return NULL;
+    }
+    
+    int idx = 0;
+    for (int i = 0; i < mass->size; i++) {
+        if (search_cmp(get_element(mass, i), target) == 0) {
+            indices[idx++] = i;
+        }
+    }
+    
+    return indices;
 }
 
 void print(DMassive* mass, const char* text, char sep, char end) {
@@ -353,6 +554,83 @@ void print(DMassive* mass, const char* text, char sep, char end) {
     }
     printf(" >%c", end);
 }
+
+void write_mass_in_file(char* dir, char* file_name, DMassive* mass) {
+    char full_path[100];
+
+    strcpy_s(full_path, sizeof(full_path), dir);
+    strncat_s(full_path, 100, file_name, 100);
+
+    FILE* output_file = NULL;
+    errno_t error;
+
+    error = fopen_s(&output_file, full_path, "w+");
+
+    if (output_file == NULL || error != 0) {
+        printf("Ошибка открытия файла для экспорта массива. Код ошибки: %d.\n", error);
+        return;
+    }
+    else {
+        printf("Файл %s открыт.\n", full_path);
+
+        fprintf(output_file, "%d\n", mass->size);
+        for (int i = 0; i < mass->size - 1; i++) {
+            int index = (mass->front + i) % (mass->size);
+            fprintf(output_file, "%.2lf ", mass->data[index]);
+        }
+        if (mass->data != NULL)
+            fprintf(output_file, "%.2lf", mass->data[(mass->front +
+                mass->size - 1) % (mass->size)]);
+        printf("Массив записан в файл.\n");
+
+        fclose(output_file);
+        printf("Файл %s закрыт.\n", full_path);
+    }
+}
+
+void read_mass_from_file(char* dir, char* file_name, DMassive* mass) {
+    char full_path[100];
+
+    strcpy_s(full_path, sizeof(full_path), dir);
+    strncat_s(full_path, 100, file_name, 100);
+
+    FILE* input_file = NULL;
+    errno_t error;
+
+    error = fopen_s(&input_file, full_path, "r");
+
+    if (input_file == NULL || error != 0) {
+        printf("Ошибка открытия файла считывания массива. Код ошибки: %d.\n", error);
+        return;
+    }
+    else {
+        printf("Файл %s открыт.\n", full_path);
+        fscanf_s(input_file, "%d\n", &mass->size);
+        if (mass->size <= 0) {
+            printf("Введено неверное количество элементов массива.");
+            return;
+        }
+        set_memory(mass, mass->size);
+        for (int i = 0; i < mass->size; i++) {
+            double value;
+            if (fscanf_s(input_file, "%lf\n", &value) != 1) {
+                printf("Ошибка чтения элемента %d из файла.\n", i);
+                fclose(input_file);
+                clear_memory(mass);
+                return;
+            }
+
+            int index = get_pos(mass, i);
+            mass->data[index] = value;
+        }
+        printf("Массив успешно загружен из файла. Загружено %d элементов.\n", mass->size);
+        fclose(input_file);
+        printf("Файл %s закрыт.\n", full_path);
+        return;
+    }
+}
+
+
 
 
 
@@ -492,6 +770,48 @@ void bogo_sort(DMassive* mass) {
     }
 
     printf("Bogo sort exceeded maximum attempts (%d)\n", MAX_ATTEMPTS);
+}
+
+static int partition(DMassive* mass, int low, int high) {
+    //if (low >= high) return low;
+
+    int pivot_index = (low + high) / 2;
+    int pivot_real = get_pos(mass, pivot_index);
+    double pivot = mass->data[pivot_real];
+
+    int high_real = get_pos(mass, high);
+    swap(&mass->data[high_real], &mass->data[pivot_real]);
+
+    int i = low - 1;
+
+    for (int j = low; j < high; j++) {
+        int j_real = get_pos(mass, j);
+        if (search_cmp(mass->data[j_real], pivot) < 0) { // mass->data[j_real] < pivot
+            i++;
+            int i_real = get_pos(mass, i);
+            swap(&mass->data[i_real], &mass->data[j_real]);
+        }
+    }
+
+    i++; // Вернуть опорный на место
+    int high_real_new = get_pos(mass, high);
+    int real_i = get_pos(mass, i);
+    swap(&mass->data[real_i], &mass->data[high_real_new]);
+    return i;
+}
+
+static void quick_sort_recursive(DMassive* mass, int low, int high) { // static так как попытка вызова из другого файла приведет к неизвестным последствиям
+    if (low < high) {
+        int border = partition(mass, low, high);
+
+        quick_sort_recursive(mass, low, border - 1);
+        quick_sort_recursive(mass, border + 1, high);
+    }
+}
+
+void quick_sort(DMassive* mass) {
+    if (mass == NULL || mass->data == NULL || mass->size <= 1) return;
+    quick_sort_recursive(mass, 0, mass->size - 1);
 }
 
 
