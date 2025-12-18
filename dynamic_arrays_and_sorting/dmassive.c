@@ -238,7 +238,7 @@ void shake_mass(DMassive* mass) {
 void push_front(DMassive* mass, double value) {
     if (mass == NULL) return;
 
-    if (is_full(mass)) {
+    if (is_full(mass)) { // изменить
         resize(mass, mass->size + 1);
         mass->front = (mass->front - 1 + mass->capacity) % mass->capacity;
         mass->data[mass->front] = value;
@@ -254,7 +254,7 @@ void push_front(DMassive* mass, double value) {
 void push_back(DMassive* mass, double value) {
     if (mass == NULL) return;
 
-    if (is_full(mass)) {
+    if (is_full(mass)) { // изменить
         resize(mass, mass->size + 1);
         mass->data[mass->back] = value;
         return;
