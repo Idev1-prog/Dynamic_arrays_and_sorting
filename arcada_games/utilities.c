@@ -41,3 +41,4 @@ void getCursor(int* line, int* column) {
         *line = 0;
     }
 }
+

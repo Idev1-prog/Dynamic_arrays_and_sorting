@@ -854,35 +854,291 @@ int start_TTT_game(int* difficulty_mode) {
     if (ai_play_position == 0) return status == O_WINS ? 1 : 0;
 }
 
+// Checkers
 
-// AI generation, not used
-//void ai_move_easy(char** field, char game_symbol, int* prev_row, int* prev_col) {
-//    // Собираем все свободные позиции в массивы
-//    int free_rows[SIZE * SIZE];
-//    int free_cols[SIZE * SIZE];
-//    int free_count = 0;
-//
-//    for (int i = 0; i < SIZE; i++) {
-//        for (int j = 0; j < SIZE; j++) {
-//            if (field[i][j] == 'B') {
-//                free_rows[free_count] = i;
-//                free_cols[free_count] = j;
-//                free_count++;
-//            }
-//        }
-//    }
-//
-//    if (free_count == 0) {
-//        return;  // Нет свободных клеток
-//    }
-//
-//    // Выбираем случайную свободную клетку
-//    int index = random_int(free_count - 1);
-//    int row = free_rows[index];
-//    int col = free_cols[index];
-//
-//    // Выполняем ход
-//    field[row][col] = game_symbol;
-//    setCursor(row + 2, col * 4 + 2);
-//    printf("%c", game_symbol);
-//}
+
+void clean_board(int row_up, int row_down) {
+    if (row_up == NULL && row_down == NULL) {
+        for (int i = SIZE_OF_FIELD_CHECKERS + 3; i < 30; i++) {
+            setCursor(i, 0);
+            printf("                                                                 ");
+        }
+    }
+    else {
+        for (int i = row_up; i < row_down; i++) {
+            setCursor(i, 0);
+            printf("                                                                 ");
+        }
+    }
+}
+
+void fill_checkers_board(char** board) {
+    for (int i = 0; i < SIZE_OF_FIELD_CHECKERS; i++) {
+        for (int j = 0; j < SIZE_OF_FIELD_CHECKERS; j++) {
+            if ((i + j) % 2 == 0) {
+                board[i][j] = EMPTY;
+            }
+            else {
+                if (i < 3) {
+                    board[i][j] = BLACK;
+                }
+                else if (i > 4) {
+                    board[i][j] = WHITE;
+                }
+                else {
+                    board[i][j] = EMPTY;
+                }
+            }
+        }
+    }
+}
+
+void show_pieces(char** board) {
+    for (int i = 0; i < SIZE_OF_FIELD_CHECKERS; i++) {
+        for (int j = 0; j < SIZE_OF_FIELD_CHECKERS; j++) {
+            if (board[i][j] != EMPTY) {
+                setCursor(i + 2, j * 4 + 2);
+                printf("%c", board[i][j]);
+            }
+        }
+    }
+}
+
+int check_move(char** board, int fr, int fc, int tr, int tc, char player) {
+    if (fr < 0 || fr >= SIZE_OF_FIELD_CHECKERS || fc < 0 || fc >= SIZE_OF_FIELD_CHECKERS ||
+        tr < 0 || tr >= SIZE_OF_FIELD_CHECKERS || tc < 0 || tc >= SIZE_OF_FIELD_CHECKERS) {
+        return 0;
+    }
+
+    if (board[fr][fc] != player) {
+        return 0;
+    }
+
+    if (board[tr][tc] != EMPTY) {
+        return 0;
+    }
+
+    if ((tr + tc) % 2 == 0) {
+        return 0;
+    }
+
+    int dr = tr - fr;
+    int dc = tc - fc;
+
+    if (abs(dc) == 1) {
+        if (player == WHITE) {
+            if (dr != -1) return 0;
+        }
+        else {
+            if (dr != 1) return 0;
+        }
+        return 1;
+    }
+
+    if (abs(dc) == 2 && abs(dr) == 2) {
+        int middle_row = (fr + tr) / 2;
+        int middle_col = (fc + tc) / 2;
+
+        char middle_piece = board[middle_row][middle_col];
+
+        if (middle_piece == EMPTY) {
+            return 0;
+        }
+
+        if (player == WHITE) {
+            if (middle_piece != BLACK) return 0;
+        }
+        else {
+            if (middle_piece != WHITE) return 0;
+        }
+
+        return 2;
+    }
+
+    return 0;
+}
+
+void do_move_with_display(char** board, int fr, int fc, int tr, int tc, int* prev_row, int* prev_col) {
+    int move_type = check_move(board, fr, fc, tr, tc, board[fr][fc]);
+
+    if (move_type == 1) {
+        setCursor(fr + 2, fc * 4 + 2);
+        printf(" ");
+
+        board[tr][tc] = board[fr][fc];
+        board[fr][fc] = EMPTY;
+
+        setCursor(tr + 2, tc * 4 + 2);
+        printf("%c", board[tr][tc]);
+
+    }
+    else if (move_type == 2) {
+        int middle_row = (fr + tr) / 2;
+        int middle_col = (fc + tc) / 2;
+
+        setCursor(fr + 2, fc * 4 + 2);
+        printf(" ");
+
+        setCursor(middle_row + 2, middle_col * 4 + 2);
+        printf(" ");
+
+        board[tr][tc] = board[fr][fc];
+        board[fr][fc] = EMPTY;
+        board[middle_row][middle_col] = EMPTY;
+
+        setCursor(tr + 2, tc * 4 + 2);
+        printf("%c", board[tr][tc]);
+
+        setCursor(SIZE_OF_FIELD_CHECKERS + 8, 0);
+        printf("Взята фигура противника!           ");
+    }
+
+    setCursor(*prev_row, *prev_col);
+}
+
+int count_pieces(char** board, char player) {
+    int count = 0;
+    for (int i = 0; i < SIZE_OF_FIELD_CHECKERS; i++) {
+        for (int j = 0; j < SIZE_OF_FIELD_CHECKERS; j++) {
+            if (board[i][j] == player) {
+                count++;
+            }
+        }
+    }
+    return count;
+}
+
+int can_capture_from_position(char** board, int row, int col, char player) {
+    // 4 возможных направления для взятия
+    int directions[4][2] = { {2, 2}, {2, -2}, {-2, 2}, {-2, -2} };
+
+    for (int i = 0; i < 4; i++) {
+        int to_row = row + directions[i][0];
+        int to_col = col + directions[i][1];
+
+        if (check_move(board, row, col, to_row, to_col, player) == 2) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+int has_forced_capture(char** board, char player) {
+    for (int i = 0; i < SIZE_OF_FIELD_CHECKERS; i++) {
+        for (int j = 0; j < SIZE_OF_FIELD_CHECKERS; j++) {
+            if (board[i][j] == player) {
+                if (can_capture_from_position(board, i, j, player)) {
+                    return 1;
+                }
+            }
+        }
+    }
+    return 0;
+}
+
+void player_turn_checkers(char** board, char player, int* prev_row, int* prev_col) {
+    int fr, fc, tr, tc;
+    int valid = 0;
+    int start_line = SIZE_OF_FIELD_CHECKERS + 4;
+
+    int forced_capture = has_forced_capture(board, player);
+
+    while (!valid) {
+        clean_board(start_line, start_line + 9); // or 4
+        setCursor(start_line, 0);
+
+        printf("Ход %s\n", (player == WHITE) ? "белых (W)" : "черных (B)");
+
+        if (forced_capture) {
+            printf("ОБЯЗАТЕЛЬНОЕ ВЗЯТИЕ! Вы должны взять фигуру.\n");
+        }
+
+        printf("Откуда (строка столбец): ");
+
+        if (scanf_s("%d %d", &fr, &fc) != 2) {
+            printf("\nНеверный ввод!");
+            while (getchar() != '\n');
+            pause_screen();
+            continue;
+        }
+
+        printf("Куда (строка столбец): ");
+
+        if (scanf_s("%d %d", &tr, &tc) != 2) {
+            printf("\nНеверный ввод!");
+            while (getchar() != '\n');
+            pause_screen();
+            continue;
+        }
+
+        int move_type = check_move(board, fr, fc, tr, tc, player);
+
+        if (move_type == 0) {
+            printf("\nНеверный ход!");
+            pause_screen();
+        }
+        else if (forced_capture && move_type != 2) {
+            printf("\nВы должны взять фигуру!");
+            pause_screen();
+        }
+        else {
+            do_move_with_display(board, fr, fc, tr, tc, prev_row, prev_col);
+            valid = 1;
+
+            if (move_type == 2 && can_capture_from_position(board, tr, tc, player)) {
+                printf("\nПродолжайте взятие!");
+                pause_screen();
+            }
+        }
+    }
+}
+
+
+int start_checkers_game(int* difficulty_mode) {
+    char** board = NULL;
+    int lines = SIZE_OF_FIELD_CHECKERS;
+    int row = SIZE_OF_FIELD_CHECKERS;
+    char current_player = WHITE;
+    int prev_row = 0, prev_col = 0;
+    int white_count, black_count;
+    int test = 0;
+    clear_screen();
+    set_malloc_char(&board, lines, row);
+    fill_checkers_board(board);
+    draw_field(board, row, lines);
+    show_pieces(board);
+    getCursor(&prev_row, &prev_col);
+
+    while (1) {
+        clean_board(SIZE_OF_FIELD_CHECKERS + 5, SIZE_OF_FIELD_CHECKERS + 20);
+
+        setCursor(SIZE_OF_FIELD_CHECKERS + 3, 0);
+
+
+        white_count = count_pieces(board, WHITE);
+        black_count = count_pieces(board, BLACK);
+
+        printf("Белых: %d, Черных: %d   ", white_count, black_count);
+
+        if (white_count == 0) {
+            printf("\n\nЧерные победили\n");
+            break;
+        }
+        if (black_count == 0) {
+            printf("\n\nБелые победили\n");
+            break;
+        }
+
+        player_turn_checkers(board, current_player, &prev_row, &prev_col);
+
+        current_player = (current_player == WHITE) ? BLACK : WHITE;
+    }
+
+    for (int i = 0; i < lines; i++) {
+        free(board[i]);
+    }
+    free(board);
+
+    pause_screen();
+    return 1;
+}

@@ -74,6 +74,9 @@ void start_game_menu(int* is_exit, int* points, int* difficult_id) { // Start ga
         case 5:
             is_back = 1;
             break;
+        case 6:
+            is_win = start_checkers_game(difficult_id);
+            break;
         case 0:
             *is_exit = 1;
             break;

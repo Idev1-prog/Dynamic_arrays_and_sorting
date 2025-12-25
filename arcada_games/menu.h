@@ -1,7 +1,7 @@
 #pragma once
 
 // Menu text definitions
-#define COUNT_OF_GAME_MENU_ITEMS 5
+#define COUNT_OF_GAME_MENU_ITEMS 6
 #define TEXT_FOR_SETINGS "\
 +---------------------------------+\n\
 | SETTINGS                        |\n\
@@ -34,6 +34,7 @@ Enter your choice:\n\
 |  3. MINESWEEPER                 |\n\
 |  4. TIC-TAC-TOE                 |\n\
 |  5. BACK                        |\n\
+|  6. CHECKERS                    |\n\
 |  0. EXIT                        |\n\
 +-------------------------------- - +\n\
 Enter your choice:\n\
